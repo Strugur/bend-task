@@ -8,7 +8,7 @@ import { BadRequestError, UnauthorizedError } from '../errors';
 import { hashPassword, generateToken } from '../security';
 import { initTokenValidationRequestHandler, initAdminValidationRequestHandler, RequestAuth } from '../middleware/security';
 import { UserType } from '../constants';
-import { registerUserValidationSchema, loginValidationSchema, createUserValidationSchema } from "../validation";
+import { registerUserValidationSchema, loginValidationSchema, createUserValidationSchema } from "../request-validation";
 import bcrypt from "bcrypt";
 
 export function initUsersRouter(sequelizeClient: SequelizeClient): Router {
@@ -17,8 +17,6 @@ export function initUsersRouter(sequelizeClient: SequelizeClient): Router {
   const tokenValidation = initTokenValidationRequestHandler(sequelizeClient);
   const adminValidation = initAdminValidationRequestHandler();
 
-  // router.get("/", (req, res) => { res.send("opa")});
-  // router.get("/", initListUsersRequestHandler(sequelizeClient));
   router.route('/')
     .get(tokenValidation, initListUsersRequestHandler(sequelizeClient))
     .post(tokenValidation, adminValidation, initCreateUserRequestHandler(sequelizeClient));
@@ -59,8 +57,8 @@ function initCreateUserRequestHandler(sequelizeClient: SequelizeClient): Request
   return async function createUserRequestHandler(req, res, next): Promise<void> {
     try {
       // NOTE(roman): missing validation and cleaning
-      const { type, name, email, password } = req.body as CreateUserData;
       await createUserValidationSchema.validateAsync(req.body);
+      const { type, name, email, password } = req.body as CreateUserData;
 
       await createUser({ type, name, email, password }, sequelizeClient);
 
@@ -112,12 +110,13 @@ function initRegisterUserRequestHandler(sequelizeClient: SequelizeClient): Reque
   return async function createUserRequestHandler(req, res, next): Promise<void> {
     try {
       // NOTE(roman): missing validation and cleaning
-      const { name, email, password } = req.body as Omit<CreateUserData, 'type'>;
       await registerUserValidationSchema.validateAsync(req.body);
+      const { name, email, password } = req.body as Omit<CreateUserData, 'type'>;
+      
 
       const salt = await bcrypt.genSalt(7);
       const passwordHash = await bcrypt.hash(password, salt);
-      // console.log(req.body);
+      console.log(req.body);
       await createUser({ type: UserType.BLOGGER, name, email, password: passwordHash }, sequelizeClient);
 
       return res.status(204).end();
