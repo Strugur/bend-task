@@ -31,7 +31,6 @@ export function initTokenValidationRequestHandler(sequelizeClient: SequelizeClie
       }
 
       const { id } = extraDataFromToken(token);
-
       const user = await models.users.findByPk(id);
       if (!user) {
         throw new UnauthorizedError('AUTH_TOKEN_INVALID');
@@ -53,7 +52,12 @@ export function initTokenValidationRequestHandler(sequelizeClient: SequelizeClie
 // NOTE(roman): assuming that `tokenValidationRequestHandler` is placed before
 export function initAdminValidationRequestHandler(): RequestHandler {
   return function adminValidationRequestHandler(req, res, next): void {
-    throw new NotImplementedError('ADMIN_VALIDATION_NOT_IMPLEMENTED_YET');
+    if ((req as any).auth.user.type === UserType.ADMIN) {
+			next();
+		} else {
+			throw new UnauthorizedError('NOT ADMIN');
+		}
+    // throw new NotImplementedError('ADMIN_VALIDATION_NOT_IMPLEMENTED_YET');
   };
 }
 

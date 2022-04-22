@@ -14,8 +14,9 @@ export function initErrorRequestHandler(): ErrorRequestHandler {
       : convertError(error);
 
     const { name, message, stack, httpCode } = httpError;
-
-    return res.status(httpCode).send({ name, message, stack }).end();
+    
+    // return res.status(httpCode).send({ name, message, stack }).end();
+    return res.status(httpCode).send({name, message}).end();
   };
 }
 

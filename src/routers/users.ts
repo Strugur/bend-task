@@ -1,4 +1,4 @@
-import { Router, RequestHandler } from 'express';
+import { Router, RequestHandler, response } from 'express';
 import { Op } from 'sequelize';
 
 import type { SequelizeClient } from '../sequelize';
@@ -8,6 +8,8 @@ import { BadRequestError, UnauthorizedError } from '../errors';
 import { hashPassword, generateToken } from '../security';
 import { initTokenValidationRequestHandler, initAdminValidationRequestHandler, RequestAuth } from '../middleware/security';
 import { UserType } from '../constants';
+import { registerUserValidationSchema, loginValidationSchema, createUserValidationSchema } from "../validation";
+import bcrypt from "bcrypt";
 
 export function initUsersRouter(sequelizeClient: SequelizeClient): Router {
   const router = Router({ mergeParams: true });
@@ -15,12 +17,15 @@ export function initUsersRouter(sequelizeClient: SequelizeClient): Router {
   const tokenValidation = initTokenValidationRequestHandler(sequelizeClient);
   const adminValidation = initAdminValidationRequestHandler();
 
+  // router.get("/", (req, res) => { res.send("opa")});
+  // router.get("/", initListUsersRequestHandler(sequelizeClient));
   router.route('/')
     .get(tokenValidation, initListUsersRequestHandler(sequelizeClient))
     .post(tokenValidation, adminValidation, initCreateUserRequestHandler(sequelizeClient));
 
   router.route('/login')
-    .post(tokenValidation, initLoginUserRequestHandler(sequelizeClient));
+    // .post(tokenValidation, initLoginUserRequestHandler(sequelizeClient));
+    .post(initLoginUserRequestHandler(sequelizeClient));
   router.route('/register')
     .post(initRegisterUserRequestHandler(sequelizeClient));
 
@@ -33,7 +38,7 @@ function initListUsersRequestHandler(sequelizeClient: SequelizeClient): RequestH
 
     try {
       const { auth: { user: { type: userType } } } = req as unknown as { auth: RequestAuth };
-
+    
       const isAdmin = userType === UserType.ADMIN;
 
       const users = await models.users.findAll({
@@ -43,7 +48,6 @@ function initListUsersRequestHandler(sequelizeClient: SequelizeClient): RequestH
       });
 
       res.send(users);
-
       return res.end();
     } catch (error) {
       next(error);
@@ -56,6 +60,7 @@ function initCreateUserRequestHandler(sequelizeClient: SequelizeClient): Request
     try {
       // NOTE(roman): missing validation and cleaning
       const { type, name, email, password } = req.body as CreateUserData;
+      await createUserValidationSchema.validateAsync(req.body);
 
       await createUser({ type, name, email, password }, sequelizeClient);
 
@@ -73,7 +78,14 @@ function initLoginUserRequestHandler(sequelizeClient: SequelizeClient): RequestH
     try {
       // NOTE(roman): missing validation and cleaning
       const { email, password } = req.body as { name: string; email: string; password: string };
-
+      // await loginValidationSchema.validateAsync(req.body);
+      if(!email || !password){
+        throw new UnauthorizedError('EMAIL_OR_PASSWORD_INCORRECT');
+      }
+      email.trim();
+      password.trim();
+      
+    
       const user = await models.users.findOne({
         attributes: ['id', 'passwordHash'],
         where: { email },
@@ -83,12 +95,12 @@ function initLoginUserRequestHandler(sequelizeClient: SequelizeClient): RequestH
         throw new UnauthorizedError('EMAIL_OR_PASSWORD_INCORRECT');
       }
 
-      if (user.passwordHash !== hashPassword(password)) {
+      const isPasswordCorrect = await bcrypt.compare(password, user.passwordHash);
+      // if (user.passwordHash !== passwordHash) {
+      if (!isPasswordCorrect) {
         throw new UnauthorizedError('EMAIL_OR_PASSWORD_INCORRECT');
       }
-
       const token = generateToken({ id: user.id });
-
       return res.send({ token }).end();
     } catch (error) {
       next(error);
@@ -101,8 +113,12 @@ function initRegisterUserRequestHandler(sequelizeClient: SequelizeClient): Reque
     try {
       // NOTE(roman): missing validation and cleaning
       const { name, email, password } = req.body as Omit<CreateUserData, 'type'>;
+      await registerUserValidationSchema.validateAsync(req.body);
 
-      await createUser({ type: UserType.BLOGGER, name, email, password }, sequelizeClient);
+      const salt = await bcrypt.genSalt(7);
+      const passwordHash = await bcrypt.hash(password, salt);
+      // console.log(req.body);
+      await createUser({ type: UserType.BLOGGER, name, email, password: passwordHash }, sequelizeClient);
 
       return res.status(204).end();
     } catch (error) {
