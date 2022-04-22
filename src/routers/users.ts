@@ -59,8 +59,9 @@ function initCreateUserRequestHandler(sequelizeClient: SequelizeClient): Request
       // NOTE(roman): missing validation and cleaning
       await createUserValidationSchema.validateAsync(req.body);
       const { type, name, email, password } = req.body as CreateUserData;
-
-      await createUser({ type, name, email, password }, sequelizeClient);
+      const salt = await bcrypt.genSalt(7);
+      const passwordHash = await bcrypt.hash(password, salt);
+      await createUser({ type, name, email, password:passwordHash }, sequelizeClient);
 
       return res.status(204).end();
     } catch (error) {
@@ -72,17 +73,15 @@ function initCreateUserRequestHandler(sequelizeClient: SequelizeClient): Request
 function initLoginUserRequestHandler(sequelizeClient: SequelizeClient): RequestHandler {
   return async function loginUserRequestHandler(req, res, next): Promise<void> {
     const { models } = sequelizeClient;
-
+    console.log(req.body);
     try {
       // NOTE(roman): missing validation and cleaning
       const { email, password } = req.body as { name: string; email: string; password: string };
-      // await loginValidationSchema.validateAsync(req.body);
       if(!email || !password){
         throw new UnauthorizedError('EMAIL_OR_PASSWORD_INCORRECT');
       }
       email.trim();
       password.trim();
-      
     
       const user = await models.users.findOne({
         attributes: ['id', 'passwordHash'],
@@ -112,7 +111,6 @@ function initRegisterUserRequestHandler(sequelizeClient: SequelizeClient): Reque
       // NOTE(roman): missing validation and cleaning
       await registerUserValidationSchema.validateAsync(req.body);
       const { name, email, password } = req.body as Omit<CreateUserData, 'type'>;
-      
 
       const salt = await bcrypt.genSalt(7);
       const passwordHash = await bcrypt.hash(password, salt);

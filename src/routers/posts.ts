@@ -114,7 +114,7 @@ function initUpdatePostRequestHandler(sequelizeClient: SequelizeClient): Request
         try {
             await updatePostValidationSchema.validateAsync(req.body);
             const { models } = sequelizeClient;
-            const {postId, title, content} = req.body;
+            const {postId, title, content, isHidden} = req.body;
             const { auth } = req as unknown as { auth: RequestAuth };
             const isAdmin = auth.user.type === UserType.ADMIN;
             console.log(auth);
@@ -122,12 +122,12 @@ function initUpdatePostRequestHandler(sequelizeClient: SequelizeClient): Request
             let updateResult = [];
             if(isAdmin){
                 updateResult = await models.posts.update(
-                    { title, content},
+                    { title, content, isHidden},
                     { where: { id: postId }}
                 );
             }else{
                 updateResult = await models.posts.update(
-                    { title, content},
+                    { title, content, isHidden},
                     { where: { id: postId , authorId:auth.user.id }, }
                 );
             }

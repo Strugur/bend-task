@@ -40,11 +40,13 @@ export function isValidToken(token: string): boolean {
 // NOTE(roman): assuming that `isValidToken` will be called before
 export function extraDataFromToken(token: string): TokenData {
   const decoded = jwt.decode(token, {json:true});
-
-  // console.log("[extraDataFromToken] decoded: ", decoded);
-  console.log("[extraDataFromToken] decoded: ", decoded?.aud);
+  let userIdFromToken = decoded?.aud;
+  let userId = -1;
+  if(!Array.isArray(userIdFromToken) && userIdFromToken){
+    userId = parseInt(userIdFromToken);
+  }
   // const userId = decoded?.aud as number ;
-  return {id: 2};
+  return {id: userId};
   // throw new NotImplementedError('TOKEN_EXTRACTION_NOT_IMPLEMENTED_YET');
 }
 
