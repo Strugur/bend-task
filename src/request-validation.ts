@@ -24,7 +24,8 @@ export const loginValidationSchema = Joi.object({
 export const createPostValidationSchema = Joi.object({
     title: Joi.string().max(50).required(), 
     content: Joi.string().required(),
-    authorId: Joi.required()
+    isHidden: Joi.boolean().required(),
+    authorId: Joi.number().required()
 });
 
 export const togglePostStatusValidationSchema = Joi.object({
