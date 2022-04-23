@@ -132,7 +132,6 @@ function initUpdatePostRequestHandler(sequelizeClient: SequelizeClient): Request
                     { where: { id: postId , authorId:auth.user.id }, }
                 );
             }
-            console.log("update result");
             if(updateResult[0] == 0){
                 throw new BadRequestError('UPDATE_POST_FAILED');
             }
@@ -153,7 +152,6 @@ function initRemovePostRequestHandler(sequelizeClient: SequelizeClient): Request
             const {postId} = req.body as RemovePostRequest;
             const { auth } = req as unknown as { auth: RequestAuth };
             const isAdmin = auth.user.type === UserType.ADMIN;
-            console.log("auth.user.id ", auth.user.id );
             let removeResult:number;
             if(isAdmin){
                 removeResult = await models.posts.destroy({

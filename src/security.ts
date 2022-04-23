@@ -21,7 +21,6 @@ export function generateToken(data: TokenData): string {
   };
 
   const token = jwt.sign(payload, secret, options);
-  console.log("token: ", token);
   return token;
 }
 
@@ -29,7 +28,6 @@ export function isValidToken(token: string): boolean {
   const secret = process.env.ACCESS_TOKEN_SECRET ?? "some_default_secret";
   try {
     var decoded = jwt.verify(token, secret);
-    console.log("decoded: ", decoded);
     return true;
   } catch(err) {
     return false;
