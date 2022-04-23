@@ -1,20 +1,20 @@
 import { NotImplementedError } from "./errors";
 import jwt, { SignOptions } from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 // TODO(roman): implement these
 // external libraries can be used
 // you can even ignore them and use your own preferred method
 
-export function hashPassword(password: string): string {
- 
-  throw new NotImplementedError('PASSWORD_HASHING_NOT_IMPLEMENTED_YET');
+export async function hashPassword(password: string): Promise<string> {
+  const salt = await bcrypt.genSalt(7);
+  const passwordHash = await bcrypt.hash(password, salt);
+  return passwordHash;
 }
 
 export function generateToken(data: TokenData): string {
-  console.log("userId: ", data.id);
   const payload = {};
   const secret = process.env.ACCESS_TOKEN_SECRET ?? "some_default_secret";
-  console.log("secret: ", secret);
   const options: SignOptions = {
     expiresIn: "40m",
     audience: data.id.toString()
@@ -23,7 +23,6 @@ export function generateToken(data: TokenData): string {
   const token = jwt.sign(payload, secret, options);
   console.log("token: ", token);
   return token;
-  // throw new NotImplementedError('TOKEN_GENERATION_NOT_IMPLEMENTED_YET');
 }
 
 export function isValidToken(token: string): boolean {
@@ -45,9 +44,7 @@ export function extraDataFromToken(token: string): TokenData {
   if(!Array.isArray(userIdFromToken) && userIdFromToken){
     userId = parseInt(userIdFromToken);
   }
-  // const userId = decoded?.aud as number ;
   return {id: userId};
-  // throw new NotImplementedError('TOKEN_EXTRACTION_NOT_IMPLEMENTED_YET');
 }
 
 export interface TokenData {
