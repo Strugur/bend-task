@@ -16,7 +16,6 @@ export const registerUserValidationSchema = Joi.object({
 
 
 export const loginValidationSchema = Joi.object({
-    // name: Joi.string().required(),
     email: Joi.string().email().required(),
     password: Joi.string().min(6).required(),
 });
@@ -25,7 +24,6 @@ export const createPostValidationSchema = Joi.object({
     title: Joi.string().max(50).required(), 
     content: Joi.string().required(),
     isHidden: Joi.boolean().required(),
-    authorId: Joi.number().required()
 });
 
 export const togglePostStatusValidationSchema = Joi.object({

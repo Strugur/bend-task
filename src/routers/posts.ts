@@ -9,6 +9,7 @@ import { createPostValidationSchema,
     togglePostStatusValidationSchema, 
     updatePostValidationSchema,
     removePostValidationSchema } from "../request-validation";
+import { CreatePostRequest, TogglePostStatusRequest, UpdatePostRequest, RemovePostRequest } from "../request-contracts/posts"
 
 export function initPostsRouter(sequelizeClient: SequelizeClient): Router {
     const router = Router({ mergeParams: true });
@@ -62,10 +63,11 @@ function initCreatePostRequestHandler(sequelizeClient: SequelizeClient): Request
     return async function (req, res, next): Promise<void> {
         try {
             await createPostValidationSchema.validateAsync(req.body);
+            const { auth } = req as unknown as { auth: RequestAuth };
             const { models } = sequelizeClient;
-            const {title, content, authorId, isHidden} = req.body;
-           
-            await models.posts.create({ title, content, authorId, isHidden });
+            const {title, content, isHidden} = req.body as CreatePostRequest;
+            
+            await models.posts.create({ title, content, authorId: auth.user.id, isHidden });
             
             res.sendStatus(204);
             return res.end();
@@ -80,7 +82,7 @@ function initTogglePostStatusRequestHandler(sequelizeClient: SequelizeClient): R
         try {
             await togglePostStatusValidationSchema.validateAsync(req.body);
             const { models } = sequelizeClient;
-            const {postId, isHidden} = req.body;
+            const {postId, isHidden} = req.body as TogglePostStatusRequest;
             const { auth } = req as unknown as { auth: RequestAuth };
             const isAdmin = auth.user.type === UserType.ADMIN;
 
@@ -114,10 +116,9 @@ function initUpdatePostRequestHandler(sequelizeClient: SequelizeClient): Request
         try {
             await updatePostValidationSchema.validateAsync(req.body);
             const { models } = sequelizeClient;
-            const {postId, title, content, isHidden} = req.body;
+            const {postId, title, content, isHidden} = req.body as UpdatePostRequest;
             const { auth } = req as unknown as { auth: RequestAuth };
             const isAdmin = auth.user.type === UserType.ADMIN;
-            console.log(auth);
             
             let updateResult = [];
             if(isAdmin){
@@ -131,6 +132,7 @@ function initUpdatePostRequestHandler(sequelizeClient: SequelizeClient): Request
                     { where: { id: postId , authorId:auth.user.id }, }
                 );
             }
+            console.log("update result");
             if(updateResult[0] == 0){
                 throw new BadRequestError('UPDATE_POST_FAILED');
             }
@@ -148,7 +150,7 @@ function initRemovePostRequestHandler(sequelizeClient: SequelizeClient): Request
         try {
             await removePostValidationSchema.validateAsync(req.body);
             const { models } = sequelizeClient;
-            const {postId} = req.body;
+            const {postId} = req.body as RemovePostRequest;
             const { auth } = req as unknown as { auth: RequestAuth };
             const isAdmin = auth.user.type === UserType.ADMIN;
             console.log("auth.user.id ", auth.user.id );
